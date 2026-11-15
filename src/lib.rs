@@ -840,3 +840,188 @@ impl DebugLogger {
         self.entries.len()
     }
 }
+
+// ============================================================
+// === LOCAL AI CATALOG (inspired by omacom/omarchy-local-ai) ===
+// ============================================================
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AiModel {
+    pub id: String,
+    pub name: String,
+    pub context_window: u32,
+    pub vram_gb: u32,
+}
+
+pub struct AiCatalog {
+    models: Vec<AiModel>,
+}
+
+impl AiCatalog {
+    pub fn new() -> Self {
+        Self {
+            models: vec![
+                AiModel {
+                    id: "deepseek-coder-v2".into(),
+                    name: "DeepSeek Coder V2".into(),
+                    context_window: 32768,
+                    vram_gb: 12,
+                },
+                AiModel {
+                    id: "hermes-3-8b".into(),
+                    name: "Nous Hermes 3 8B".into(),
+                    context_window: 16384,
+                    vram_gb: 8,
+                },
+                AiModel {
+                    id: "qwen2.5-coder-7b".into(),
+                    name: "Qwen 2.5 Coder 7B".into(),
+                    context_window: 32768,
+                    vram_gb: 6,
+                },
+            ],
+        }
+    }
+
+    pub fn list_models(&self) -> &[AiModel] {
+        &self.models
+    }
+
+    pub fn find(&self, id: &str) -> Option<&AiModel> {
+        self.models.iter().find(|m| m.id == id)
+    }
+
+    pub fn count(&self) -> usize {
+        self.models.len()
+    }
+}
+
+impl Default for AiCatalog {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ============================================================
+// === PORT FORWARD TUNNEL (inspired by omacom/omarchy-port-forward-plugin) ===
+// ============================================================
+
+#[derive(Debug, Clone)]
+pub struct SshTunnel {
+    pub name: String,
+    pub local_port: u16,
+    pub remote_host: String,
+    pub remote_port: u16,
+    pub is_active: bool,
+}
+
+pub struct TunnelManager {
+    tunnels: Vec<SshTunnel>,
+}
+
+impl TunnelManager {
+    pub fn new() -> Self {
+        Self {
+            tunnels: Vec::new(),
+        }
+    }
+
+    pub fn add(&mut self, tunnel: SshTunnel) {
+        self.tunnels.push(tunnel);
+    }
+
+    pub fn toggle(&mut self, name: &str) -> Result<bool, String> {
+        if let Some(t) = self.tunnels.iter_mut().find(|t| t.name == name) {
+            t.is_active = !t.is_active;
+            Ok(t.is_active)
+        } else {
+            Err(format!("Tunnel '{}' not found", name))
+        }
+    }
+
+    pub fn active_tunnels(&self) -> Vec<&SshTunnel> {
+        self.tunnels.iter().filter(|t| t.is_active).collect()
+    }
+
+    pub fn count(&self) -> usize {
+        self.tunnels.len()
+    }
+}
+
+impl Default for TunnelManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ============================================================
+// === PLUGIN MARKETPLACE (inspired by omacom/omarchy-plugin-marketplace) ===
+// ============================================================
+
+#[derive(Debug, Clone)]
+pub struct PluginInfo {
+    pub id: String,
+    pub name: String,
+    pub author: String,
+    pub installed: bool,
+}
+
+pub struct PluginMarketplace {
+    plugins: Vec<PluginInfo>,
+}
+
+impl PluginMarketplace {
+    pub fn new() -> Self {
+        Self {
+            plugins: vec![
+                PluginInfo {
+                    id: "theme-sync".into(),
+                    name: "Theme Sync Broadcaster".into(),
+                    author: "Omacom".into(),
+                    installed: true,
+                },
+                PluginInfo {
+                    id: "port-forward".into(),
+                    name: "SSH Port Forward Drawer".into(),
+                    author: "Omacom".into(),
+                    installed: true,
+                },
+                PluginInfo {
+                    id: "local-ai".into(),
+                    name: "Local AI Catalog".into(),
+                    author: "SigmaOS".into(),
+                    installed: true,
+                },
+                PluginInfo {
+                    id: "audio-tuner".into(),
+                    name: "Speaker DSP Tuner".into(),
+                    author: "Omacom".into(),
+                    installed: false,
+                },
+            ],
+        }
+    }
+
+    pub fn list(&self) -> &[PluginInfo] {
+        &self.plugins
+    }
+
+    pub fn install(&mut self, id: &str) -> Result<(), String> {
+        if let Some(p) = self.plugins.iter_mut().find(|p| p.id == id) {
+            p.installed = true;
+            Ok(())
+        } else {
+            Err(format!("Plugin '{}' not found", id))
+        }
+    }
+
+    pub fn installed_plugins(&self) -> Vec<&PluginInfo> {
+        self.plugins.iter().filter(|p| p.installed).collect()
+    }
+}
+
+impl Default for PluginMarketplace {
+    fn default() -> Self {
+        Self::new()
+    }
+}

@@ -173,6 +173,27 @@ fn main() -> ExitCode {
             println!("Active Fonts: JetBrains Mono (Terminal), Inter (Desktop UI)");
             return ExitCode::SUCCESS;
         }
+        "ai" => {
+            println!("\x1b[1;36mOmarchy Local AI Agent Model Catalog:\x1b[0m");
+            println!("  • DeepSeek Coder V2 (16B / Q4) - 32k context");
+            println!("  • Nous Hermes 3 (8B / Q8) - 16k context");
+            println!("  • Qwen 2.5 Coder (7B / Q5) - 32k context");
+            return ExitCode::SUCCESS;
+        }
+        "tunnel" => {
+            println!("\x1b[1;36mOmarchy SSH Port Forwarding:\x1b[0m");
+            println!("  • Dev PostgreSQL (5433 -> 5432)");
+            println!("  • Ollama Remote Node (11434 -> 11434)");
+            return ExitCode::SUCCESS;
+        }
+        "plugin" => {
+            println!("\x1b[1;36mOmarchy Plugin Marketplace:\x1b[0m");
+            println!("  [✓] theme-sync (Active)");
+            println!("  [✓] port-forward (Active)");
+            println!("  [✓] local-ai (Active)");
+            println!("  [ ] audio-tuner (Available)");
+            return ExitCode::SUCCESS;
+        }
         "binds" => {
             println!("{}", render_binds());
             return ExitCode::SUCCESS;

@@ -158,3 +158,48 @@ fn test_debug_logger_level_filter_aaa() {
     assert_eq!(errors.len(), 1);
     assert_eq!(errors[0], "disk full");
 }
+
+#[test]
+fn test_ai_catalog_list_and_find_aaa() {
+    // Arrange
+    let catalog = sigmaos_linux_omarchy::AiCatalog::new();
+    // Act
+    let models = catalog.list_models();
+    let found = catalog.find("deepseek-coder-v2");
+    // Assert
+    assert_eq!(models.len(), 3);
+    assert!(found.is_some());
+    assert_eq!(found.unwrap().vram_gb, 12);
+}
+
+#[test]
+fn test_tunnel_manager_toggle_aaa() {
+    // Arrange
+    let mut mgr = sigmaos_linux_omarchy::TunnelManager::new();
+    mgr.add(sigmaos_linux_omarchy::SshTunnel {
+        name: "dev-db".into(),
+        local_port: 5433,
+        remote_host: "10.0.0.1".into(),
+        remote_port: 5432,
+        is_active: false,
+    });
+    // Act
+    let status = mgr.toggle("dev-db").unwrap();
+    let active = mgr.active_tunnels();
+    // Assert
+    assert!(status);
+    assert_eq!(active.len(), 1);
+    assert_eq!(active[0].name, "dev-db");
+}
+
+#[test]
+fn test_plugin_marketplace_install_aaa() {
+    // Arrange
+    let mut marketplace = sigmaos_linux_omarchy::PluginMarketplace::new();
+    // Act
+    let initial_installed = marketplace.installed_plugins().len();
+    marketplace.install("audio-tuner").unwrap();
+    let after_installed = marketplace.installed_plugins().len();
+    // Assert
+    assert_eq!(after_installed, initial_installed + 1);
+}
