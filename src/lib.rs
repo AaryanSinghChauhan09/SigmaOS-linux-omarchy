@@ -7,7 +7,6 @@
 //! - theme switch orchestration across components
 //! Replaces the Supervisor/Config placeholder.
 
-use std::collections::BTreeMap;
 use std::fmt;
 
 /// Omarchy CLI subcommands.

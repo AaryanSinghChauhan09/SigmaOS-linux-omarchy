@@ -2,9 +2,14 @@
 name = "sigmaos_linux_omarchy"
 version = "0.1.0"
 edition = "2021"
+default-run = "omarchy-shell"
 
 [lib]
 name = "sigmaos_linux_omarchy"
 path = "src/lib.rs"
+
+[[bin]]
+name = "omarchy-shell"
+path = "src/main.rs"
 
 [dependencies]
