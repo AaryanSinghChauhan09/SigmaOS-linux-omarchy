@@ -109,9 +109,18 @@ fn main() -> ExitCode {
             println!("==> Installing {} via SigmaOS package manager...", pkg);
             let status = SysCommand::new("sigpkg").arg("install").arg(&pkg).status();
             match status {
-                Ok(s) => if s.success() { ExitCode::SUCCESS } else { ExitCode::FAILURE },
+                Ok(s) => {
+                    if s.success() {
+                        ExitCode::SUCCESS
+                    } else {
+                        ExitCode::FAILURE
+                    }
+                }
                 Err(_) => {
-                    println!("\x1b[32m[✓] Package {} queued for installation.\x1b[0m", pkg);
+                    println!(
+                        "\x1b[32m[✓] Package {} queued for installation.\x1b[0m",
+                        pkg
+                    );
                     ExitCode::SUCCESS
                 }
             }
@@ -120,7 +129,13 @@ fn main() -> ExitCode {
             println!("==> Executing Omarchy system rolling update...");
             let status = SysCommand::new("sigpkg").arg("update").status();
             match status {
-                Ok(s) => if s.success() { ExitCode::SUCCESS } else { ExitCode::FAILURE },
+                Ok(s) => {
+                    if s.success() {
+                        ExitCode::SUCCESS
+                    } else {
+                        ExitCode::FAILURE
+                    }
+                }
                 Err(_) => {
                     println!("\x1b[32m[✓] System update verified.\x1b[0m");
                     ExitCode::SUCCESS

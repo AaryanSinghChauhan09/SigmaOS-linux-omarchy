@@ -5,6 +5,7 @@
 //!   menu, restart, shutdown, lock, screenshot)
 //! - keybind -> hyprland dispatch map (Omarchy defaults)
 //! - theme switch orchestration across components
+//!
 //! Replaces the Supervisor/Config placeholder.
 
 use std::fmt;
@@ -12,27 +13,54 @@ use std::fmt;
 /// Omarchy CLI subcommands.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
-    Theme { action: ThemeAction },
-    Refresh,                    // re-apply all configs
-    Install { pkg: String },    // pacman -S via wrapper
-    Update,                     // full system update
-    Menu { pane: String },      // walker/elephant menu pane
-    Restart { target: RestartTarget },
+    Theme {
+        action: ThemeAction,
+    },
+    Refresh, // re-apply all configs
+    Install {
+        pkg: String,
+    }, // pacman -S via wrapper
+    Update,  // full system update
+    Menu {
+        pane: String,
+    }, // walker/elephant menu pane
+    Restart {
+        target: RestartTarget,
+    },
     Lock,
-    Screenshot { mode: ShotMode },
-    Open { app: String },
-    Config { key: Option<String>, value: Option<String> },
+    Screenshot {
+        mode: ShotMode,
+    },
+    Open {
+        app: String,
+    },
+    Config {
+        key: Option<String>,
+        value: Option<String>,
+    },
     Help,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ThemeAction { Set(String), Next, Prev, List }
+pub enum ThemeAction {
+    Set(String),
+    Next,
+    Prev,
+    List,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RestartTarget { Session, System }
+pub enum RestartTarget {
+    Session,
+    System,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ShotMode { Screen, Window, Region }
+pub enum ShotMode {
+    Screen,
+    Window,
+    Region,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ParseError {
@@ -57,24 +85,36 @@ impl std::error::Error for ParseError {}
 
 /// Parse `omarchy <args>` argv (excluding argv[0]).
 pub fn parse_command(args: &[&str]) -> Result<Command, ParseError> {
-    if args.is_empty() { return Err(ParseError::EmptyArgs); }
+    if args.is_empty() {
+        return Err(ParseError::EmptyArgs);
+    }
     match args[0] {
-        "theme" => {
-            match args.get(1).copied() {
-                Some("next") => Ok(Command::Theme { action: ThemeAction::Next }),
-                Some("prev") => Ok(Command::Theme { action: ThemeAction::Prev }),
-                Some("list") => Ok(Command::Theme { action: ThemeAction::List }),
-                Some(name) if !name.starts_with('-') =>
-                    Ok(Command::Theme { action: ThemeAction::Set(name.into()) }),
-                _ => Err(ParseError::BadThemeAction(
-                    args.get(1).unwrap_or(&"").to_string())),
-            }
-        }
+        "theme" => match args.get(1).copied() {
+            Some("next") => Ok(Command::Theme {
+                action: ThemeAction::Next,
+            }),
+            Some("prev") => Ok(Command::Theme {
+                action: ThemeAction::Prev,
+            }),
+            Some("list") => Ok(Command::Theme {
+                action: ThemeAction::List,
+            }),
+            Some(name) if !name.starts_with('-') => Ok(Command::Theme {
+                action: ThemeAction::Set(name.into()),
+            }),
+            _ => Err(ParseError::BadThemeAction(
+                args.get(1).unwrap_or(&"").to_string(),
+            )),
+        },
         "refresh" => Ok(Command::Refresh),
         "install" | "add" => {
             let pkg = args.get(1).ok_or(ParseError::MissingArg {
-                cmd: "install", what: "package".into() })?;
-            Ok(Command::Install { pkg: pkg.to_string() })
+                cmd: "install",
+                what: "package".into(),
+            })?;
+            Ok(Command::Install {
+                pkg: pkg.to_string(),
+            })
         }
         "update" | "upgrade" => Ok(Command::Update),
         "menu" => Ok(Command::Menu {
@@ -96,8 +136,12 @@ pub fn parse_command(args: &[&str]) -> Result<Command, ParseError> {
         }),
         "open" | "launch" => {
             let app = args.get(1).ok_or(ParseError::MissingArg {
-                cmd: "open", what: "app".into() })?;
-            Ok(Command::Open { app: app.to_string() })
+                cmd: "open",
+                what: "app".into(),
+            })?;
+            Ok(Command::Open {
+                app: app.to_string(),
+            })
         }
         "config" | "set" => Ok(Command::Config {
             key: args.get(1).map(|s| s.to_string()),
@@ -135,8 +179,12 @@ pub fn default_keybinds() -> Vec<(&'static str, &'static str, &'static str)> {
 pub fn render_binds() -> String {
     let mut out = String::new();
     for (mods, key, action) in default_keybinds() {
-        out.push_str(&format!("bind = {}, {}, exec, omarchy {}\n",
-            mods.replace(' ', "+"), key, action));
+        out.push_str(&format!(
+            "bind = {}, {}, exec, omarchy {}\n",
+            mods.replace(' ', "+"),
+            key,
+            action
+        ));
     }
     out
 }
@@ -160,7 +208,9 @@ pub enum ShellAction {
 }
 
 impl OmarchyShell {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     /// Resolve a CLI command to a shell action (theme commands become
     /// theme actions, everything else stays a command to dispatch).
@@ -178,8 +228,12 @@ impl OmarchyShell {
 
     /// Compute next theme name given current index.
     pub fn cycle_theme(&self, dir: i8) -> Option<String> {
-        if self.themes.is_empty() { return None; }
-        let cur = self.theme.as_ref()
+        if self.themes.is_empty() {
+            return None;
+        }
+        let cur = self
+            .theme
+            .as_ref()
             .and_then(|t| self.themes.iter().position(|x| x == t))
             .unwrap_or(0);
         let n = self.themes.len() as i8;
@@ -198,33 +252,71 @@ mod tests {
         let set = parse_command(&["theme", "tokyo-night"]).unwrap();
         let next = parse_command(&["theme", "next"]).unwrap();
         // Assert
-        assert_eq!(set, Command::Theme { action: ThemeAction::Set("tokyo-night".into()) });
-        assert_eq!(next, Command::Theme { action: ThemeAction::Next });
+        assert_eq!(
+            set,
+            Command::Theme {
+                action: ThemeAction::Set("tokyo-night".into())
+            }
+        );
+        assert_eq!(
+            next,
+            Command::Theme {
+                action: ThemeAction::Next
+            }
+        );
     }
 
     #[test]
     fn test_parse_common_commands_aaa() {
         // Arrange & Act & Assert
         assert_eq!(parse_command(&["refresh"]).unwrap(), Command::Refresh);
-        assert_eq!(parse_command(&["install", "firefox"]).unwrap(),
-            Command::Install { pkg: "firefox".into() });
+        assert_eq!(
+            parse_command(&["install", "firefox"]).unwrap(),
+            Command::Install {
+                pkg: "firefox".into()
+            }
+        );
         assert_eq!(parse_command(&["update"]).unwrap(), Command::Update);
-        assert_eq!(parse_command(&["screenshot", "window"]).unwrap(),
-            Command::Screenshot { mode: ShotMode::Window });
-        assert_eq!(parse_command(&["restart", "system"]).unwrap(),
-            Command::Restart { target: RestartTarget::System });
-        assert_eq!(parse_command(&["menu", "apps"]).unwrap(),
-            Command::Menu { pane: "apps".into() });
+        assert_eq!(
+            parse_command(&["screenshot", "window"]).unwrap(),
+            Command::Screenshot {
+                mode: ShotMode::Window
+            }
+        );
+        assert_eq!(
+            parse_command(&["restart", "system"]).unwrap(),
+            Command::Restart {
+                target: RestartTarget::System
+            }
+        );
+        assert_eq!(
+            parse_command(&["menu", "apps"]).unwrap(),
+            Command::Menu {
+                pane: "apps".into()
+            }
+        );
     }
 
     #[test]
     fn test_parse_errors_fail_fast_aaa() {
         // Arrange & Act & Assert
         assert!(matches!(parse_command(&[]), Err(ParseError::EmptyArgs)));
-        assert!(matches!(parse_command(&["bogus"]), Err(ParseError::UnknownCommand(_))));
-        assert!(matches!(parse_command(&["install"]), Err(ParseError::MissingArg { .. })));
-        assert!(matches!(parse_command(&["theme"]), Err(ParseError::BadThemeAction(_))));
-        assert!(matches!(parse_command(&["open"]), Err(ParseError::MissingArg { .. })));
+        assert!(matches!(
+            parse_command(&["bogus"]),
+            Err(ParseError::UnknownCommand(_))
+        ));
+        assert!(matches!(
+            parse_command(&["install"]),
+            Err(ParseError::MissingArg { .. })
+        ));
+        assert!(matches!(
+            parse_command(&["theme"]),
+            Err(ParseError::BadThemeAction(_))
+        ));
+        assert!(matches!(
+            parse_command(&["open"]),
+            Err(ParseError::MissingArg { .. })
+        ));
     }
 
     #[test]
@@ -258,7 +350,9 @@ mod tests {
         let mut sh = OmarchyShell::new();
         sh.themes = vec!["a".into(), "b".into()];
         // Act
-        let a = sh.resolve(Command::Theme { action: ThemeAction::Next });
+        let a = sh.resolve(Command::Theme {
+            action: ThemeAction::Next,
+        });
         let b = sh.resolve(Command::Refresh);
         // Assert
         assert_eq!(a, ShellAction::CycleTheme { dir: 1 });
