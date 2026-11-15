@@ -203,3 +203,20 @@ fn test_plugin_marketplace_install_aaa() {
     // Assert
     assert_eq!(after_installed, initial_installed + 1);
 }
+
+#[test]
+fn test_self_healing_engine_fix_all_aaa() {
+    // Arrange
+    let mut engine = sigmaos_linux_omarchy::SelfHealingEngine::new();
+    engine.add_issue(sigmaos_linux_omarchy::SystemIssue::StaleLock(
+        "/var/lib/pacman/db.lck".into(),
+    ));
+    engine.add_issue(sigmaos_linux_omarchy::SystemIssue::MissingBinary(
+        "omarchy-shell".into(),
+    ));
+    // Act
+    let fixes = engine.fix_all();
+    // Assert
+    assert_eq!(fixes.len(), 2);
+    assert!(!engine.has_issues());
+}

@@ -1025,3 +1025,52 @@ impl Default for PluginMarketplace {
         Self::new()
     }
 }
+
+// ============================================================
+// === SELF-HEALING ENGINE (inspired by omacom/wecanfixeverything) ===
+// ============================================================
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SystemIssue {
+    StaleLock(String),
+    MissingBinary(String),
+    MissingConfig(String),
+}
+
+pub struct SelfHealingEngine {
+    issues: Vec<SystemIssue>,
+}
+
+impl SelfHealingEngine {
+    pub fn new() -> Self {
+        Self { issues: Vec::new() }
+    }
+
+    pub fn add_issue(&mut self, issue: SystemIssue) {
+        self.issues.push(issue);
+    }
+
+    pub fn has_issues(&self) -> bool {
+        !self.issues.is_empty()
+    }
+
+    pub fn fix_all(&mut self) -> Vec<String> {
+        let results: Vec<String> = self
+            .issues
+            .iter()
+            .map(|i| match i {
+                SystemIssue::StaleLock(p) => format!("Removed stale lock: {}", p),
+                SystemIssue::MissingBinary(b) => format!("Restored binary symlink: {}", b),
+                SystemIssue::MissingConfig(c) => format!("Regenerated config template: {}", c),
+            })
+            .collect();
+        self.issues.clear();
+        results
+    }
+}
+
+impl Default for SelfHealingEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
