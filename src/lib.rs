@@ -359,3 +359,484 @@ mod tests {
         assert_eq!(b, ShellAction::ExecCommand(Command::Refresh));
     }
 }
+
+// ============================================================
+// === AUDIO ===
+// ============================================================
+
+pub struct AudioControl {
+    pub volume: u8,
+    pub muted: bool,
+}
+
+impl AudioControl {
+    pub fn new() -> Self {
+        Self {
+            volume: 50,
+            muted: false,
+        }
+    }
+
+    pub fn set_volume(&mut self, vol: u8) -> Result<(), String> {
+        if vol > 100 {
+            return Err(format!("Volume {} exceeds max 100", vol));
+        }
+        self.volume = vol;
+        Ok(())
+    }
+
+    pub fn toggle_mute(&mut self) {
+        self.muted = !self.muted;
+    }
+
+    pub fn effective_volume(&self) -> u8 {
+        if self.muted {
+            0
+        } else {
+            self.volume
+        }
+    }
+}
+
+impl Default for AudioControl {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ============================================================
+// === BRIGHTNESS ===
+// ============================================================
+
+pub struct BrightnessControl {
+    pub level: u8,
+}
+
+impl BrightnessControl {
+    pub fn new(level: u8) -> Self {
+        Self { level }
+    }
+
+    pub fn set(&mut self, level: u8) -> Result<(), String> {
+        if level > 100 {
+            return Err(format!("Level {} exceeds 100", level));
+        }
+        self.level = level;
+        Ok(())
+    }
+
+    pub fn increase(&mut self, delta: u8) {
+        self.level = self.level.saturating_add(delta).min(100);
+    }
+
+    pub fn decrease(&mut self, delta: u8) {
+        self.level = self.level.saturating_sub(delta);
+    }
+}
+
+// ============================================================
+// === CAPTURE ===
+// ============================================================
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum CaptureTarget {
+    Screen,
+    Region,
+    Window,
+    ActiveWindow,
+}
+
+pub struct CaptureEngine {
+    pub last_path: Option<String>,
+}
+
+impl CaptureEngine {
+    pub fn new() -> Self {
+        Self { last_path: None }
+    }
+
+    pub fn build_command(&self, target: &CaptureTarget, output: &str) -> String {
+        let mode = match target {
+            CaptureTarget::Screen => "screen",
+            CaptureTarget::Region => "region",
+            CaptureTarget::Window => "window",
+            CaptureTarget::ActiveWindow => "active",
+        };
+        format!("grim -{} {}", mode, output)
+    }
+
+    pub fn set_last_path(&mut self, path: &str) {
+        self.last_path = Some(path.to_string());
+    }
+
+    pub fn has_capture(&self) -> bool {
+        self.last_path.is_some()
+    }
+}
+
+impl Default for CaptureEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ============================================================
+// === CLIPBOARD ===
+// ============================================================
+
+pub struct Clipboard {
+    stack: Vec<String>,
+}
+
+impl Clipboard {
+    pub fn new() -> Self {
+        Self { stack: Vec::new() }
+    }
+
+    pub fn copy(&mut self, text: &str) {
+        self.stack.push(text.to_string());
+    }
+
+    pub fn paste(&self) -> Option<&str> {
+        self.stack.last().map(|s| s.as_str())
+    }
+
+    pub fn history(&self) -> &[String] {
+        &self.stack
+    }
+
+    pub fn clear(&mut self) {
+        self.stack.clear();
+    }
+
+    pub fn history_len(&self) -> usize {
+        self.stack.len()
+    }
+}
+
+impl Default for Clipboard {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ============================================================
+// === THEME (new structs) ===
+// ============================================================
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ThemePreset {
+    CatppuccinMocha,
+    TokyoNight,
+    Nord,
+    GruvboxDark,
+    CyberSlate,
+}
+
+impl ThemePreset {
+    pub fn name(&self) -> &str {
+        match self {
+            Self::CatppuccinMocha => "catppuccin-mocha",
+            Self::TokyoNight => "tokyo-night",
+            Self::Nord => "nord",
+            Self::GruvboxDark => "gruvbox-dark",
+            Self::CyberSlate => "cyber-slate",
+        }
+    }
+
+    pub fn background_color(&self) -> &str {
+        match self {
+            Self::CatppuccinMocha => "#1e1e2e",
+            Self::TokyoNight => "#1a1b26",
+            Self::Nord => "#2e3440",
+            Self::GruvboxDark => "#282828",
+            Self::CyberSlate => "#0d1117",
+        }
+    }
+
+    pub fn all() -> Vec<ThemePreset> {
+        vec![
+            Self::CatppuccinMocha,
+            Self::TokyoNight,
+            Self::Nord,
+            Self::GruvboxDark,
+            Self::CyberSlate,
+        ]
+    }
+}
+
+pub struct ThemeManager {
+    pub active: ThemePreset,
+}
+
+impl ThemeManager {
+    pub fn new() -> Self {
+        Self {
+            active: ThemePreset::CatppuccinMocha,
+        }
+    }
+
+    pub fn apply(&mut self, preset: ThemePreset) {
+        self.active = preset;
+    }
+
+    pub fn active_name(&self) -> &str {
+        self.active.name()
+    }
+
+    pub fn list_themes() -> Vec<&'static str> {
+        vec![
+            "catppuccin-mocha",
+            "tokyo-night",
+            "nord",
+            "gruvbox-dark",
+            "cyber-slate",
+        ]
+    }
+}
+
+impl Default for ThemeManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ============================================================
+// === CONFIG ===
+// ============================================================
+
+pub struct OmarchyConfig {
+    entries: std::collections::HashMap<String, String>,
+}
+
+impl OmarchyConfig {
+    pub fn new() -> Self {
+        Self {
+            entries: std::collections::HashMap::new(),
+        }
+    }
+
+    pub fn set(&mut self, key: &str, value: &str) {
+        self.entries.insert(key.to_string(), value.to_string());
+    }
+
+    pub fn get(&self, key: &str) -> Option<&str> {
+        self.entries.get(key).map(|s| s.as_str())
+    }
+
+    pub fn keys(&self) -> Vec<&str> {
+        self.entries.keys().map(|s| s.as_str()).collect()
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+}
+
+impl Default for OmarchyConfig {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ============================================================
+// === BATTERY ===
+// ============================================================
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum BatteryStatus {
+    Charging,
+    Discharging,
+    Full,
+    Unknown,
+}
+
+pub struct BatteryInfo {
+    pub level: u8,
+    pub status: BatteryStatus,
+    pub time_remaining_min: Option<u32>,
+}
+
+impl BatteryInfo {
+    pub fn new(level: u8, status: BatteryStatus) -> Self {
+        Self {
+            level,
+            status,
+            time_remaining_min: None,
+        }
+    }
+
+    pub fn is_critical(&self) -> bool {
+        self.level < 10 && self.status == BatteryStatus::Discharging
+    }
+
+    pub fn is_full(&self) -> bool {
+        self.level >= 100 || self.status == BatteryStatus::Full
+    }
+
+    pub fn set_time_remaining(&mut self, mins: u32) {
+        self.time_remaining_min = Some(mins);
+    }
+}
+
+// ============================================================
+// === FONT ===
+// ============================================================
+
+#[derive(Debug, Clone)]
+pub struct FontEntry {
+    pub name: String,
+    pub family: String,
+    pub is_monospace: bool,
+    pub size: u32,
+}
+
+pub struct FontManager {
+    fonts: Vec<FontEntry>,
+}
+
+impl FontManager {
+    pub fn new() -> Self {
+        Self { fonts: Vec::new() }
+    }
+
+    pub fn register(&mut self, entry: FontEntry) {
+        self.fonts.push(entry);
+    }
+
+    pub fn monospace_fonts(&self) -> Vec<&FontEntry> {
+        self.fonts.iter().filter(|f| f.is_monospace).collect()
+    }
+
+    pub fn find(&self, name: &str) -> Option<&FontEntry> {
+        self.fonts.iter().find(|f| f.name == name)
+    }
+
+    pub fn count(&self) -> usize {
+        self.fonts.len()
+    }
+}
+
+impl Default for FontManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ============================================================
+// === UPDATE ===
+// ============================================================
+
+#[derive(Debug, Clone)]
+pub struct UpdatePackage {
+    pub name: String,
+    pub current_version: String,
+    pub new_version: String,
+}
+
+pub struct UpdateManager {
+    pending: Vec<UpdatePackage>,
+}
+
+impl UpdateManager {
+    pub fn new() -> Self {
+        Self {
+            pending: Vec::new(),
+        }
+    }
+
+    pub fn add_pending(&mut self, pkg: UpdatePackage) {
+        self.pending.push(pkg);
+    }
+
+    pub fn pending_count(&self) -> usize {
+        self.pending.len()
+    }
+
+    pub fn apply_update(&mut self, name: &str) -> Result<String, String> {
+        if let Some(pos) = self.pending.iter().position(|p| p.name == name) {
+            let pkg = self.pending.remove(pos);
+            Ok(format!(
+                "Updated {} from {} to {}",
+                pkg.name, pkg.current_version, pkg.new_version
+            ))
+        } else {
+            Err(format!("Package {} not in pending list", name))
+        }
+    }
+
+    pub fn apply_all(&mut self) -> Vec<String> {
+        let results: Vec<String> = self
+            .pending
+            .iter()
+            .map(|p| format!("Updated {} to {}", p.name, p.new_version))
+            .collect();
+        self.pending.clear();
+        results
+    }
+}
+
+impl Default for UpdateManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+// ============================================================
+// === DEBUG ===
+// ============================================================
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum LogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warn,
+    Error,
+}
+
+impl LogLevel {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Trace => "TRACE",
+            Self::Debug => "DEBUG",
+            Self::Info => "INFO",
+            Self::Warn => "WARN",
+            Self::Error => "ERROR",
+        }
+    }
+}
+
+pub struct DebugLogger {
+    entries: Vec<(LogLevel, String)>,
+    pub level: LogLevel,
+}
+
+impl DebugLogger {
+    pub fn new(level: LogLevel) -> Self {
+        Self {
+            entries: Vec::new(),
+            level,
+        }
+    }
+
+    pub fn log(&mut self, level: LogLevel, msg: &str) {
+        self.entries.push((level, msg.to_string()));
+    }
+
+    pub fn entries_at_level(&self, level: &LogLevel) -> Vec<&str> {
+        self.entries
+            .iter()
+            .filter(|(l, _)| l == level)
+            .map(|(_, m)| m.as_str())
+            .collect()
+    }
+
+    pub fn entry_count(&self) -> usize {
+        self.entries.len()
+    }
+}
