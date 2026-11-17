@@ -1,6 +1,6 @@
 [component]
 name = "SigmaOS-linux-omarchy"
-description = "Omarchy Hyprland tiling and keyboard workflow integration"
+description = "SigmaOS component SigmaOS-linux-omarchy"
 version = "0.1.0"
 tier = 4
 
